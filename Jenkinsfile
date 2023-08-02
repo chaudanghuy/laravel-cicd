@@ -11,7 +11,7 @@ pipeline {
             steps {
                 // Checkout your Laravel application code from version control (e.g., Git)
                 // For example, if you're using Git:
-                git 'https://github.com/your-username/laravel-app.git'
+                git 'https://github.com/chaudanghuy/laravel-cicd.git'
             }
         }
 
