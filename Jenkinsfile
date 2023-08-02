@@ -1,47 +1,49 @@
 pipeline {
     agent any
+
+    environment {
+        DOCKER_IMAGE = 'laravel-app-image'
+        DOCKER_CONTAINER = 'laravel-app-container'
+    }
+
     stages {
-        stage("Verify tooling") {
+        stage('Checkout') {
             steps {
-                sh '''
-                    docker info
-                    docker version
-                    docker compose version
-                '''
+                // Checkout your Laravel application code from version control (e.g., Git)
+                // For example, if you're using Git:
+                git 'https://github.com/your-username/laravel-app.git'
             }
         }
-        stage("Clear all running docker containers") {
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    try {
-                        sh 'docker rm -f $(docker ps -a -q)'
-                    } catch (Exception e) {
-                        echo 'No running container to clear up...'
-                    }
+                    // Build the Docker image for Laravel application
+                    sh "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
-        stage("Start Docker") {
+
+        stage('Run Tests') {
             steps {
-                sh 'make up'
-                sh 'docker compose ps'
+                script {
+                    // Run Laravel tests inside the Docker container
+                    sh "docker run --rm ${DOCKER_IMAGE} php artisan test"
+                }
             }
         }
-        stage("Run Composer Install") {
+
+        stage('Deploy') {
             steps {
-                sh 'docker compose run --rm composer install'
+                script {
+                    // Stop and remove any previous containers with the same name
+                    sh "docker stop ${DOCKER_CONTAINER} || true"
+                    sh "docker rm ${DOCKER_CONTAINER} || true"
+
+                    // Run the Laravel application in a Docker container
+                    sh "docker run -d -p 80:80 --name ${DOCKER_CONTAINER} ${DOCKER_IMAGE}"
+                }
             }
-        }
-        stage("Run Tests") {
-            steps {
-                sh 'docker compose run --rm artisan test'
-            }
-        }
-    }
-    post {
-        always {
-            sh 'docker compose down --remove-orphans -v'
-            sh 'docker compose ps'
         }
     }
 }
